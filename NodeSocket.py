@@ -14,19 +14,20 @@ class NodeUDP(object):
         message for send,
         addr is (IP, port)
         '''
-        self.udp_send.sendto(message, addr)
+        messageBytes = message.encode('gbk')
+        self.udp_send.sendto(messageBytes, addr)
     
     def recv(self):
         '''
         @return: (message, addr)
         '''
         message, addr = self.udp_listen.recvfrom(2048)
-        return (message, addr)
+        return (message.decode('gbk'), addr)
 
 if __name__ == "__main__":
     node_1 = NodeUDP(1)
     node_2 = NodeUDP(2)
-    node_1.send(b"i'm node 1", ("127.0.0.1", 10002))
+    node_1.send("i'm node 1", ("127.0.0.1", 10002))
     recieve_msg, _ = node_2.recv()
     print("1" in recieve_msg)
     
