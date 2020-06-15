@@ -27,7 +27,8 @@ class NodeUDP(object):
 if __name__ == "__main__":
     node_1 = NodeUDP(1)
     node_2 = NodeUDP(2)
-    node_1.send("i'm node 1", ("127.0.0.1", 10002))
-    recieve_msg, _ = node_2.recv()
-    print("1" in recieve_msg)
+    while (True):
+        to_send = input("input:")
+        node_1.send(to_send, ("127.0.0.1", 10002))
+        print(node_2.recv())
     
