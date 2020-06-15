@@ -22,3 +22,11 @@ class NodeUDP(object):
         '''
         message, addr = self.udp_listen.recvfrom(2048)
         return (message, addr)
+
+if __name__ == "__main__":
+    node_1 = NodeUDP(1)
+    node_2 = NodeUDP(2)
+    node_1.send(b"i'm node 1", ("127.0.0.1", 10002))
+    recieve_msg, _ = node_2.recv()
+    print("1" in recieve_msg)
+    
