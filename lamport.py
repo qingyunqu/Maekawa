@@ -1,5 +1,6 @@
 from NodeSocket import NodeUDP
 from NodeSocket import startPort
+from priorityqueue import PriorityQueue
 import threading
 import time
 import queue
@@ -11,9 +12,9 @@ import sys
 logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("lamport")
 
-node_num = 2
+node_num = 5
 current = -1
-enter_times = 5
+enter_times = 10
 
 message_type = ["request", "reply", "release"]
 
@@ -35,7 +36,7 @@ class Node():
         self.thread.setDaemon(True)
         self.lock = threading.Lock()
         self.thread.start()
-        self.q = queue.PriorityQueue()
+        self.q = PriorityQueue()
         self.q_lock = threading.Lock()
         self.replied_list = []
         self.reply_lock = threading.Lock()
@@ -72,7 +73,7 @@ class Node():
         request_str = self.broadcast("request")
         request_tuple = str2tuple(request_str)
         self.q_lock.acquire()
-        self.q.put(request_tuple)
+        self.q.push(request_tuple)
         self.q_lock.release()
 
     def reply(self, request_str, to):
@@ -80,19 +81,25 @@ class Node():
     
     def release(self):
         self.broadcast("release")
+        self.reply_lock.acquire()
+        self.replied_list = []
+        self.reply_lock.release()
+        self.q_lock.acquire()
+        self.q.pop()
+        self.q_lock.release()
     
     def run(self):
         global enter_times
         global current
         global node_num
         for _ in range(enter_times):
-            self.request()
             logger.info("node {} requests to enter CS".format(self.node_id))
+            self.request()
             while True:
                 time.sleep(0.1)
                 self.q_lock.acquire()
                 top_request_tuple = self.q.get()
-                self.q.put(top_request_tuple)
+                # self.q.put(top_request_tuple)
                 self.q_lock.release()
                 self.reply_lock.acquire()
                 reply_num = len(self.replied_list)
@@ -102,9 +109,6 @@ class Node():
             logger.info("node {} enters CS".format(self.node_id))
             time.sleep(random.randint(1,5))
             self.release()
-            self.reply_lock.acquire()
-            self.replied_list = []
-            self.reply_lock.release()
             logger.info("node {} leaves CS".format(self.node_id))
 
     
@@ -130,7 +134,7 @@ class Node():
                 self.reply(request_str, node_id)
                 request_tuple = str2tuple(request_str)
                 self.q_lock.acquire()
-                self.q.put(request_tuple)
+                self.q.push(request_tuple)
                 self.q_lock.release()
             elif msg_type == "reply":
                 self.reply_lock.acquire()
@@ -138,8 +142,12 @@ class Node():
                 self.reply_lock.release()
             elif msg_type == "release":
                 self.q_lock.acquire()
-                self.q.get()
+                self.q.pop()
                 self.q_lock.release()
+            
+            # logger.debug("node {}, queue: {}".format(self.node_id, self.q.queue))
+            
+            
 
 
 
@@ -148,7 +156,7 @@ class Node():
 if __name__ == "__main__":
     node_id = int(sys.argv[1])
     node = Node(node_id)
-    time.sleep(10)
+    time.sleep(5)
     node.run()
 
     '''
