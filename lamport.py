@@ -1,20 +1,20 @@
 from NodeSocket import NodeUDP
 from NodeSocket import startPort
 from priorityqueue import PriorityQueue
+from logger import Logger
 import threading
 import time
 import queue
-import logging
 import random 
 import multiprocessing
 import sys
 
-logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger("lamport")
+L = Logger()
+logger = L.get_logger()
 
-node_num = 5
+node_num = 3
 current = -1
-enter_times = 10
+enter_times = 2
 
 message_type = ["request", "reply", "release"]
 
