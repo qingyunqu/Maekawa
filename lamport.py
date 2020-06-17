@@ -106,10 +106,12 @@ class Node():
                 self.reply_lock.release()
                 if self.node_id == top_request_tuple[1] and reply_num == (node_num-1):
                     break
-            logger.info("node {} enters CS".format(self.node_id))
+            logger.info("node {} enters CS at {}".format(self.node_id, self.timestamp))
             time.sleep(random.randint(1,5))
             self.release()
-            logger.info("node {} leaves CS".format(self.node_id))
+            logger.info("node {} leaves CS at {}".format(self.node_id, self.timestamp))
+            time.sleep(1)
+        time.sleep(3)
 
     
     def listen(self):
