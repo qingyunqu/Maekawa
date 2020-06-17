@@ -23,6 +23,9 @@ class PriorityQueue(object):
 
     def get(self):
         return self.queue[0]
+    
+    def empty(self):
+        return len(self.queue) == 0
 
 if __name__ == "__main__":
     pq = PriorityQueue()

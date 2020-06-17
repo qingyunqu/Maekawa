@@ -10,7 +10,7 @@ import multiprocessing
 import sys
 
 L = Logger()
-L.set_log_name("lamport")
+L.set_log_name("rechart")
 logger = L.get_logger()
 
 node_num = 3
@@ -41,6 +41,8 @@ class Node():
         self.q_lock = threading.Lock()
         self.replied_list = []
         self.reply_lock = threading.Lock()
+        # self.pending_req = PriorityQueue()
+        # self.pending_locl = threading.Lock()
         
         
     
@@ -94,28 +96,22 @@ class Node():
         global current
         global node_num
         for _ in range(enter_times):
-            logger.info("node {} requests to enter CS".format(self.node_id))
+            logger.debug("node {} requests to enter CS".format(self.node_id))
             self.request()
+            enter_flag = False
             while True:
                 time.sleep(0.1)
-                self.q_lock.acquire()
-                top_request_tuple = self.q.get()
-                # self.q.put(top_request_tuple)
-                self.q_lock.release()
-                self.reply_lock.acquire()
-                reply_num = len(self.replied_list)
-                self.reply_lock.release()
-                if self.node_id == top_request_tuple[1] and reply_num == (node_num-1):
+                if current == self.node_id:
+                    enter_flag = True
+                if enter_flag and current != self.node_id:
                     break
-            logger.info("node {} enters CS at {}".format(self.node_id, self.timestamp))
-            time.sleep(random.randint(1,5))
-            self.release()
-            logger.info("node {} leaves CS at {}".format(self.node_id, self.timestamp))
             time.sleep(1)
         time.sleep(3)
 
     
     def listen(self):
+        global current
+        
         while True:
             msg = self.nodeudp.recv()[0]
             ts = int(msg.split(',')[0][1:])
@@ -130,24 +126,49 @@ class Node():
                 self.lock.release()
             
             logger.debug("node {} recieve '{}' from node {} at {}".format(self.node_id, msg, node_id, self.timestamp))
+            logger.debug("node {} queue: {}".format(self.node_id, self.q.queue))
 
             msg_type = msg.split(":")[1]
             if msg_type == "request":
                 request_str = msg.split(":")[0]
-                self.reply(request_str, node_id)
                 request_tuple = str2tuple(request_str)
                 self.q_lock.acquire()
                 self.q.push(request_tuple)
+                top_req = self.q.get()
+                if top_req == request_tuple:
+                    self.q.pop()
+                    self.reply(request_str, node_id)
                 self.q_lock.release()
+
             elif msg_type == "reply":
                 self.reply_lock.acquire()
                 self.replied_list.append(node_id)
+                reply_num = len(self.replied_list)
+                if reply_num == node_num - 1:
+                    
+                    logger.info("node {} enters CS at {}".format(self.node_id, self.timestamp))
+                    current = self.node_id
+                    time.sleep(random.randint(1,5))
+                    
+                    self.q_lock.acquire()
+                    self.q.pop() # pop himself
+                    while not self.q.empty():
+                        pending_request_tuple = self.q.pop()
+                        pending_request_str = tuple2str(pending_request_tuple)
+                        self.reply(pending_request_str, pending_request_tuple[1])
+                    self.q_lock.release()
+                    self.lock.acquire()
+                    logger.info("node {} leaves CS at {}".format(self.node_id, self.timestamp))
+                    self.lock.release()
+                    current = -1
+                    self.replied_list = []
                 self.reply_lock.release()
+            '''
             elif msg_type == "release":
                 self.q_lock.acquire()
                 self.q.pop()
                 self.q_lock.release()
-            
+            '''
             # logger.debug("node {}, queue: {}".format(self.node_id, self.q.queue))
             
             

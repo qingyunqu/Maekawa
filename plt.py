@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import queue
 
-log_dir = "default.log"
+log_dir = "rechart.log"
 type2c = {
     "request":"blue", 
     "reply" :"green", 
@@ -34,6 +34,8 @@ with open(log_dir, 'r') as f:
         if "leaves" in line:
             u_rec_node = int(line.split()[-5])
             u_rec_t = int(line.split()[-1])
+            if u_rec_t == u_send_t:
+                u_rec_t += 1
             msg_type = "use"
             max_ts = max(max_ts, rec_t)
             q.put((u_send_t,u_rec_t,u_send_node,u_rec_node,msg_type))
@@ -50,6 +52,7 @@ ax.spines['left'].set_visible(False)
 
 cnt = 0
 plt.xlim([0,max_ts])
+plt.xticks(list(range(max_ts+1)))
 while not q.empty():
     data = q.get()
     send_t,rec_t,send_node,rec_node,msg_type = data[0],data[1],data[2],data[3],data[4]
